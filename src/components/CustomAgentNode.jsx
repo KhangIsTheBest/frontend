@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 
 // Custom React Flow Node for Multi-Agent UI
 export const CustomAgentNode = ({ data, selected }) => {
-  const { nodeName, agentType, systemPrompt, modelSource } = data;
+  const { nodeName, agentType, systemPrompt, modelSource, activeRunning } = data;
 
   // CSS Class and Badge styling according to type
   const nodeTypeClass = `node-${agentType ? agentType.toLowerCase() : 'executor'}`;
@@ -24,7 +24,7 @@ export const CustomAgentNode = ({ data, selected }) => {
   };
 
   return (
-    <div className={`agent-node ${nodeTypeClass} ${selected ? 'selected' : ''}`}>
+    <div className={`agent-node ${nodeTypeClass} ${selected ? 'selected' : ''} ${activeRunning ? 'active-running' : ''}`}>
       {/* Target input handle (on the left) */}
       <Handle
         type="target"

@@ -24,6 +24,97 @@ export default function App() {
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [notification, setNotification] = useState(null);
 
+  // Real-time execution states via WebSocket
+  const [liveExecutionSteps, setLiveExecutionSteps] = useState([]);
+  const [currentRunningNode, setCurrentRunningNode] = useState(null);
+
+  // Lắng nghe thông điệp từ WebSocket
+  const handleWebSocketMessage = useCallback((event) => {
+    if (!activeWorkflow || event.workflowId !== activeWorkflow.id) return;
+
+    if (event.type === 'NODE_RUNNING') {
+      setCurrentRunningNode({
+        id: event.nodeId,
+        name: event.nodeName,
+        type: event.agentType
+      });
+
+      // Kích hoạt trạng thái nhấp nháy phát sáng trên Canvas cho Node này
+      setNodes((prevNodes) =>
+        prevNodes.map((n) =>
+          n.id === event.nodeId
+            ? { ...n, data: { ...n.data, activeRunning: true } }
+            : { ...n, data: { ...n.data, activeRunning: false } }
+        )
+      );
+    } else if (event.type === 'NODE_COMPLETED') {
+      if (event.step) {
+        setLiveExecutionSteps((prev) => {
+          if (prev.some((s) => s.stepOrder === event.step.stepOrder)) return prev;
+          return [...prev, event.step];
+        });
+      }
+
+      // Tắt trạng thái nhấp nháy cho Node này
+      setNodes((prevNodes) =>
+        prevNodes.map((n) =>
+          n.id === event.nodeId
+            ? { ...n, data: { ...n.data, activeRunning: false } }
+            : n
+        )
+      );
+    } else if (event.type === 'WORKFLOW_COMPLETED' || event.type === 'WORKFLOW_FAILED') {
+      setCurrentRunningNode(null);
+
+      // Tắt trạng thái nhấp nháy cho toàn bộ Node
+      setNodes((prevNodes) =>
+        prevNodes.map((n) =>
+          n.data.activeRunning ? { ...n, data: { ...n.data, activeRunning: false } } : n
+        )
+      );
+    }
+  }, [activeWorkflow, setNodes]);
+
+  // Thiết lập kết nối WebSocket với reconnection
+  useEffect(() => {
+    let ws;
+    let reconnectTimeout;
+
+    const connect = () => {
+      ws = new WebSocket('ws://localhost:8080/ws/execution');
+
+      ws.onopen = () => {
+        console.log('🔌 Đã kết nối thành công với Spring Boot WebSocket');
+      };
+
+      ws.onmessage = (messageEvent) => {
+        try {
+          const data = JSON.parse(messageEvent.data);
+          handleWebSocketMessage(data);
+        } catch (err) {
+          console.error('Lỗi phân tích cú pháp dữ liệu WebSocket:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('🔌 Kết nối WebSocket bị ngắt. Thử lại sau 3 giây...');
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error('Lỗi WebSocket:', err);
+        ws.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (ws) ws.close();
+      clearTimeout(reconnectTimeout);
+    };
+  }, [handleWebSocketMessage]);
+
   // Load all workflows on mount
   useEffect(() => {
     loadWorkflows();
@@ -285,6 +376,8 @@ export default function App() {
   // Execution
   const handleRunWorkflow = async (message, conversationId) => {
     if (!activeWorkflow) return;
+    setLiveExecutionSteps([]);
+    setCurrentRunningNode(null);
     return await chatApi.execute(activeWorkflow.id, message, conversationId);
   };
 
@@ -374,6 +467,8 @@ export default function App() {
               onRunWorkflow={handleRunWorkflow}
               activeConversationId={activeConversationId}
               setActiveConversationId={setActiveConversationId}
+              liveExecutionSteps={liveExecutionSteps}
+              currentRunningNode={currentRunningNode}
             />
           )}
         </div>

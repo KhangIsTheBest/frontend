@@ -5,6 +5,8 @@ export const ChatPanel = ({
   onRunWorkflow,
   activeConversationId,
   setActiveConversationId,
+  liveExecutionSteps = [],
+  currentRunningNode = null,
 }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -18,7 +20,7 @@ export const ChatPanel = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isRunning]);
+  }, [messages, isRunning, liveExecutionSteps, currentRunningNode]);
 
   // Clear messages when workflow changes
   useEffect(() => {
@@ -156,11 +158,42 @@ export const ChatPanel = ({
 
         {isRunning && (
           <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-            <div className="chat-bubble assistant" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <div className="spinner" />
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Các Agent đang trao đổi và xử lý...
-              </span>
+            <div className="chat-bubble assistant" style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '85%' }}>
+              {/* Show live execution steps so far */}
+              {liveExecutionSteps && liveExecutionSteps.length > 0 && (
+                <div className="execution-steps-wrapper" style={{ marginTop: 0, marginBottom: '12px' }}>
+                  <div className="execution-step-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Nhật ký thực thi (Đang cập nhật...)
+                  </div>
+                  {liveExecutionSteps.map((step) => (
+                    <div key={step.stepOrder} className="execution-step-item">
+                      <div className={`execution-step-dot step-${step.agentType}`} />
+                      <div className="execution-step-header">
+                        <span className="execution-step-name">
+                          Bao gồm: {step.nodeName || 'Agent'}
+                        </span>
+                        <span className="execution-step-type">
+                          #{step.stepOrder} ({step.agentType})
+                        </span>
+                      </div>
+                      <div className="execution-step-content">{step.output}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Show current running node status */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className="spinner" />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {currentRunningNode 
+                    ? `Agent [${currentRunningNode.name}] (${currentRunningNode.type}) đang xử lý...`
+                    : 'Đang khởi chạy luồng Multi-Agent...'}
+                </span>
+              </div>
             </div>
           </div>
         )}
