@@ -102,3 +102,9 @@ export const chatApi = {
       body: JSON.stringify({ workflowId, message, conversationId }),
     }).then(handleResponse),
 };
+
+export const analyticsApi = {
+  // Get analytics for a workflow
+  getWorkflowAnalytics: (workflowId) =>
+    fetch(`${API_BASE}/analytics/workflow/${workflowId}`).then(handleResponse),
+};

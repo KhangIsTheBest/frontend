@@ -5,7 +5,8 @@ import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { NodeConfigPanel } from './components/NodeConfigPanel';
 import { EdgeConfigPanel } from './components/EdgeConfigPanel';
 import { ChatPanel } from './components/ChatPanel';
-import { workflowApi, nodeApi, edgeApi, chatApi } from './api';
+import { AnalyticsPanel } from './components/AnalyticsPanel';
+import { workflowApi, nodeApi, edgeApi, chatApi, analyticsApi } from './api';
 
 export default function App() {
   const [workflows, setWorkflows] = useState([]);
@@ -444,6 +445,12 @@ export default function App() {
           >
             Chạy thử
           </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+          >
+            Thống kê
+          </button>
         </div>
 
         <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -461,7 +468,7 @@ export default function App() {
                 onDeleteNode={handleDeleteNode}
               />
             )
-          ) : (
+          ) : activeTab === 'chat' ? (
             <ChatPanel
               activeWorkflow={activeWorkflow}
               onRunWorkflow={handleRunWorkflow}
@@ -470,6 +477,8 @@ export default function App() {
               liveExecutionSteps={liveExecutionSteps}
               currentRunningNode={currentRunningNode}
             />
+          ) : (
+            <AnalyticsPanel activeWorkflow={activeWorkflow} />
           )}
         </div>
       </section>
